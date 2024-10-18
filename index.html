@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Classifier</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 400px;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        .image-preview {
+            margin: 20px 0;
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            display: none; /* Hidden by default, shown when image is loaded */
+        }
+        .prediction {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .confidence {
+            font-size: 14px;
+            color: gray;
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .loading {
+            display: none;
+            font-size: 16px;
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Animal Classifier</h1>
+        <form id="upload-form">
+            <input type="file" id="file-input" name="file" accept="image/*" required><br>
+            <img id="image-preview" class="image-preview" alt="Selected Image Preview">
+            <button type="submit">Predict</button>
+        </form>
+        <div class="prediction"></div>
+        <div class="confidence"></div>
+        <div class="loading">Predicting...</div>
+    </div>
+
+    <script>
+        // Show the image preview
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imagePreview = document.getElementById('image-preview');
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';  // Show the image
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Form submission for image upload and prediction
+        document.getElementById('upload-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            let formData = new FormData();
+            let fileInput = document.getElementById('file-input');
+            
+            if (fileInput.files.length === 0) {
+                alert('Please select an image.');
+                return;
+            }
+
+            formData.append('file', fileInput.files[0]);
+
+            // Show loading text while prediction is being processed
+            document.querySelector('.loading').style.display = 'block';
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('.loading').style.display = 'none';  // Hide loading text
+                document.querySelector('.prediction').textContent = `Predicted Animal: ${data.predicted_class}`;
+                
+                let confidenceHTML = 'Confidence Scores: <br>';
+                for (const [animal, score] of Object.entries(data.confidence_scores)) {
+                    confidenceHTML += `${animal}: ${(score * 100).toFixed(2)}%<br>`;
+                }
+                document.querySelector('.confidence').innerHTML = confidenceHTML;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.querySelector('.loading').style.display = 'none';  // Hide loading text
+            });
+        });
+    </script>
+
+</body>
+</html>
